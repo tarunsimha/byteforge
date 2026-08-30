@@ -1,77 +1,127 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "../include/disk.h"
 #include "../include/superblock.h"
+#include "../include/bitmap.h"
 #include "../include/common.h"
 
-int main()
+int main(void)
 {
-    int flag = 0;
+    uint32_t block_num;
+    uint32_t inode_num;
 
-    /*
-    printf("Creating 1GiB file now\n");
-    flag = disk_create("virtual_disk.img");
-    if (flag) {
-        printf("File creation was successful\n");
-    } else {
-        printf("File could not be created\n");
+    if (!disk_create("virtual_disk.img")) {
+        printf("Disk could not be created\n");
+        return 1;
     }
-    */
 
-    flag = disk_open("virtual_disk.img");
-    if (flag) {
-        printf("Disk opened successfuly\n");
-    } else {
+    printf("Disk created successfully\n");
+
+    if (!disk_open("virtual_disk.img")) {
         printf("Disk could not be opened\n");
+        return 1;
     }
 
-    /*
-    uint32_t block_num = 0;
-    char write_buffer[BLOCK_SIZE];
-    memset(write_buffer, 'A', BLOCK_SIZE);
-    flag = disk_write_block(block_num, write_buffer);
-    if (!flag) {
-        printf("Could not write data to block number %d\n", block_num);
-    } else {
-        printf("Data write to block number %d was successful\n", block_num);
+    printf("Disk opened successfully\n");
+
+    if (!superblock_init() || !superblock_write()) {
+        printf("Superblock initialization failed\n");
+        disk_close();
+        return 1;
     }
 
-    block_num = 1;
-    memset(write_buffer, 'B', BLOCK_SIZE);
-    flag = disk_write_block(block_num, write_buffer);
-    if (!flag) {
-        printf("Could not write data to block number %d\n", block_num);
-    } else {
-        printf("Data write to block number %d was successful\n", block_num);
+    printf("Superblock written successfully\n");
+
+    if (!bitmap_init() || !bitmap_write()) {
+        printf("Bitmap initialization failed\n");
+        disk_close();
+        return 1;
     }
 
-    block_num = 2;
-    memset(write_buffer, 'C', BLOCK_SIZE);
-    flag = disk_write_block(block_num, write_buffer);
-    if (!flag) {
-        printf("Could not write data to block number %d\n", block_num);
-    } else {
-        printf("Data write to block number %d was successful\n", block_num);
+    printf("Bitmaps written successfully\n");
+
+    if (!bitmap_set_block(DATA_BLOCK_START)) {
+        printf("Could not set block\n");
+        disk_close();
+        return 1;
     }
 
-    superblock_init();
-    superblock_write();
-    */
-
-    superblock_read();
-    flag = superblock_validate();
-    if (flag) {
-        printf("The given file is a byfs system\n");
-    } else {
-        printf("The given file is not a byfs system\n");
+    if (!bitmap_set_inode(1)) {
+        printf("Could not set inode\n");
+        disk_close();
+        return 1;
     }
 
-    flag = disk_close();
-    if (flag) {
-        printf("Disk closed successfuly\n");
-    } else {
+    if (!bitmap_write()) {
+        printf("Bitmap update failed\n");
+        disk_close();
+        return 1;
+    }
+
+    printf("Bitmap update successful\n");
+
+    if (!disk_close()) {
         printf("Disk could not be closed\n");
+        return 1;
     }
+
+    printf("Disk closed successfully\n");
+
+    if (!disk_open("virtual_disk.img")) {
+        printf("Disk could not be reopened\n");
+        return 1;
+    }
+
+    printf("Disk reopened successfully\n");
+
+    if (!superblock_read() || !superblock_validate()) {
+        printf("Superblock validation failed\n");
+        disk_close();
+        return 1;
+    }
+
+    printf("Superblock validation successful\n");
+
+    if (!bitmap_read()) {
+        printf("Bitmap could not be read\n");
+        disk_close();
+        return 1;
+    }
+
+    if (!bitmap_test_block(DATA_BLOCK_START)) {
+        printf("Block allocation was not persisted\n");
+        disk_close();
+        return 1;
+    }
+
+    if (!bitmap_test_inode(1)) {
+        printf("Inode allocation was not persisted\n");
+        disk_close();
+        return 1;
+    }
+
+    if (!bitmap_find_free_block(&block_num)) {
+        printf("Could not find free block\n");
+        disk_close();
+        return 1;
+    }
+
+    if (!bitmap_find_free_inode(&inode_num)) {
+        printf("Could not find free inode\n");
+        disk_close();
+        return 1;
+    }
+
+    printf("Next free block: %u\n", block_num);
+    printf("Next free inode: %u\n", inode_num);
+
+    if (!disk_close()) {
+        printf("Disk could not be closed\n");
+        return 1;
+    }
+
+    printf("All tests passed\n");
+
+    return 0;
 }

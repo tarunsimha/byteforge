@@ -81,6 +81,7 @@ int disk_close(void)
     }
 
     disk_file = NULL;
+    disk_opened = 0;
     return 1;
 }
 
