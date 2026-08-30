@@ -3,12 +3,14 @@
 #include <string.h>
 
 #include "../include/disk.h"
+#include "../include/superblock.h"
 #include "../include/common.h"
 
 int main()
 {
     int flag = 0;
 
+    /*
     printf("Creating 1GiB file now\n");
     flag = disk_create("virtual_disk.img");
     if (flag) {
@@ -16,6 +18,7 @@ int main()
     } else {
         printf("File could not be created\n");
     }
+    */
 
     flag = disk_open("virtual_disk.img");
     if (flag) {
@@ -24,6 +27,7 @@ int main()
         printf("Disk could not be opened\n");
     }
 
+    /*
     uint32_t block_num = 0;
     char write_buffer[BLOCK_SIZE];
     memset(write_buffer, 'A', BLOCK_SIZE);
@@ -52,36 +56,16 @@ int main()
         printf("Data write to block number %d was successful\n", block_num);
     }
 
-    char read_buffer[BLOCK_SIZE];
-    block_num = 0;
-    flag = disk_read_block(block_num, read_buffer);
-    if (!flag) {
-        printf("Could not read data from block number %d\n", block_num);
+    superblock_init();
+    superblock_write();
+    */
+
+    superblock_read();
+    flag = superblock_validate();
+    if (flag) {
+        printf("The given file is a byfs system\n");
     } else {
-        for (int i = 0; i < BLOCK_SIZE; i++) {
-            printf("%c", read_buffer[i]);
-        }
-        printf("\nReading data from block number %d was successful\n", block_num);
-    }
-    block_num = 1;
-    flag = disk_read_block(block_num, read_buffer);
-    if (!flag) {
-        printf("Could not read data from block number %d\n", block_num);
-    } else {
-        for (int i = 0; i < BLOCK_SIZE; i++) {
-            printf("%c", read_buffer[i]);
-        }
-        printf("\nReading data from block number %d was successful\n", block_num);
-    }
-    block_num = 2;
-    flag = disk_read_block(block_num, read_buffer);
-    if (!flag) {
-        printf("Could not read data from block number %d\n", block_num);
-    } else {
-        for (int i = 0; i < BLOCK_SIZE; i++) {
-            printf("%c", read_buffer[i]);
-        }
-        printf("\nReading data from block number %d was successful\n", block_num);
+        printf("The given file is not a byfs system\n");
     }
 
     flag = disk_close();
