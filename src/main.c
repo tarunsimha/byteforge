@@ -10,4 +10,11 @@ int main()
     } else {
         printf("File could not be created\n");
     }
+
+    flag = disk_open("virtual_disk.img");
+    if (flag) {
+        printf("Disk opened successfuly\n");
+    } else {
+        printf("Disk could not be opened\n");
+    }
 }

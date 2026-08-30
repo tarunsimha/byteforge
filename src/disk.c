@@ -6,6 +6,9 @@
 #define VFS_DISK_SIZE (1024LL * 1024LL * 1024LL)
 #define BUFFER_SIZE (1024 * 1024)
 
+static FILE* disk_file = NULL;
+static int disk_opened = 0;
+
 int disk_create(const char* filename)
 {
     FILE *fp = fopen(filename, "wb");
@@ -34,6 +37,7 @@ int disk_create(const char* filename)
         if (bytes_written != bytes_to_write) {
             free(buffer);
             fclose(fp);
+            fp = NULL;
             return 0;
         }
 
@@ -42,6 +46,24 @@ int disk_create(const char* filename)
 
     free(buffer);
     fclose(fp);
+    fp = NULL;
+    return 1;
+}
+
+int disk_open(const char* filename)
+{
+    if (disk_opened) {
+        return 0;
+    }
+
+    FILE* fp = fopen(filename, "r+b");
+
+    if (fp == NULL) {
+        return 0;
+    }
+
+    disk_file = fp;
+    disk_opened = 1;
 
     return 1;
 }
