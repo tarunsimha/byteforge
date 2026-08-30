@@ -17,4 +17,11 @@ int main()
     } else {
         printf("Disk could not be opened\n");
     }
+
+    flag = disk_close();
+    if (flag) {
+        printf("Disk closed successfuly\n");
+    } else {
+        printf("Disk could not be closed\n");
+    }
 }

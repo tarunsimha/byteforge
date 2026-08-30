@@ -67,3 +67,18 @@ int disk_open(const char* filename)
 
     return 1;
 }
+
+int disk_close(void)
+{
+    if (disk_file == NULL) {
+        return 0;
+    }
+
+    int flag = fclose(disk_file);
+    if (flag) {
+        return 0;
+    }
+
+    disk_file = NULL;
+    return 1;
+}
