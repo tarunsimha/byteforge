@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "../include/disk.h"
+#include "../include/common.h"
 
-#define VFS_DISK_SIZE (1024LL * 1024LL * 1024LL)
 #define BUFFER_SIZE (1024 * 1024)
 
 static FILE* disk_file = NULL;
@@ -22,10 +23,10 @@ int disk_create(const char* filename)
         return 0;
     }
 
-    long long written = 0LL;
+    long long unsigned written = 0ULL;
 
-    while (written < VFS_DISK_SIZE) {
-        long long remaining = VFS_DISK_SIZE - written;
+    while (written < DISK_SIZE) {
+        long long unsigned remaining = DISK_SIZE - written;
         size_t bytes_to_write = BUFFER_SIZE;
 
         if (remaining < BUFFER_SIZE) {
@@ -80,5 +81,39 @@ int disk_close(void)
     }
 
     disk_file = NULL;
+    return 1;
+}
+
+int disk_read_block(uint32_t block_num, void* buffer)
+{
+    if (!disk_opened || disk_file == NULL) return 0;
+    if (block_num >= TOTAL_BLOCKS) return 0;
+    if (buffer == NULL) return 0;
+
+    uint64_t offset = (uint64_t) block_num * BLOCK_SIZE;
+
+    int flag = fseek(disk_file, (long) offset, SEEK_SET);
+    if (flag != 0) return 0;
+
+    size_t bytes_read = fread(buffer, 1, BLOCK_SIZE, disk_file);
+    if (bytes_read != BLOCK_SIZE) return 0;
+
+    return 1;
+}
+
+int disk_write_block(uint32_t block_num, const void* buffer)
+{
+    if (!disk_opened || disk_file == NULL) return 0;
+    if (block_num >= TOTAL_BLOCKS) return 0;
+    if (buffer == NULL) return 0;
+
+    uint64_t offset = (uint64_t) block_num * BLOCK_SIZE;
+
+    int flag = fseek(disk_file, (long) offset, SEEK_SET);
+    if (flag != 0) return 0;
+
+    size_t bytes_written = fwrite(buffer, 1, BLOCK_SIZE, disk_file);
+    if (bytes_written != BLOCK_SIZE) return 0;
+
     return 1;
 }
