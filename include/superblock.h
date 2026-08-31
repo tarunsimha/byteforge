@@ -22,5 +22,8 @@ int superblock_validate(void);
 
 void superblock_mark_dirty(void);
 void superblock_mark_clean(void);
-
+void superblock_change_free_blocks(uint32_t blocks);
+void superblock_change_free_inodes(uint32_t inodes);
+uint32_t superblock_get_free_blocks(void);
+uint32_t superblock_get_free_inodes(void);
 #endif

@@ -13,8 +13,8 @@ int superblock_init(void)
     superblock.block_size = BLOCK_SIZE;
     superblock.total_blocks = TOTAL_BLOCKS;
     superblock.total_inodes = TOTAL_INODES;
-    superblock.free_blocks = TOTAL_BLOCKS;
-    superblock.free_inodes = TOTAL_INODES;
+    superblock.free_blocks = TOTAL_BLOCKS - DATA_BLOCK_START; // Accounted for block bitmap
+    superblock.free_inodes = TOTAL_INODES - 1U; // Accounted for root inode
     superblock.root_inode = 0U;
     superblock.filesystem_state = FS_CLEAN;
 
@@ -24,6 +24,7 @@ int superblock_init(void)
 int superblock_write(void)
 {
     char buffer[BLOCK_SIZE] = {0};
+
     memcpy(buffer, &superblock, sizeof(superblock));
 
     return disk_write_block(0, buffer);
@@ -33,7 +34,9 @@ int superblock_read(void)
 {
     char buffer[BLOCK_SIZE];
 
-    if (!disk_read_block(0, buffer)) return 0;
+    if (!disk_read_block(0, buffer)) {
+        return 0;
+    }
 
     memcpy(&superblock, buffer, sizeof(superblock));
 
@@ -67,4 +70,30 @@ void superblock_mark_dirty(void)
 {
     superblock.filesystem_state = FS_DIRTY;
     superblock_write();
+}
+
+void superblock_change_free_blocks(uint32_t blocks)
+{
+    if (blocks > superblock.total_blocks) return;
+
+    superblock.free_blocks = blocks;
+    superblock_write();
+}
+
+void superblock_change_free_inodes(uint32_t inodes)
+{
+    if (inodes > superblock.total_inodes) return;
+
+    superblock.free_inodes = inodes;
+    superblock_write();
+}
+
+uint32_t superblock_get_free_blocks(void)
+{
+    return superblock.free_blocks;
+}
+
+uint32_t superblock_get_free_inodes(void)
+{
+    return superblock.free_inodes;
 }

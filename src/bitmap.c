@@ -4,6 +4,7 @@
 #include "../include/disk.h"
 #include "../include/bitmap.h"
 #include "../include/common.h"
+#include "../include/superblock.h"
 
 #define BLOCK_BITMAP_SIZE (BLOCK_BITMAP_BLOCKS * BLOCK_SIZE)
 #define INODE_BITMAP_SIZE (INODE_BITMAP_BLOCKS * BLOCK_SIZE)
@@ -40,13 +41,14 @@ int bitmap_init(void)
     memset(block_bitmap, 0, sizeof(block_bitmap));
     memset(inode_bitmap, 0, sizeof(inode_bitmap));
 
-    // Reserve filesystem metadata blocks
     for (uint32_t i = 0; i < DATA_BLOCK_START; i++) {
-        bitmap_set_block(i);
+        bitmap_set(block_bitmap, i);
     }
 
-    // Reserve inode 0 for the root inode
-    bitmap_set_inode(0);
+    bitmap_set(inode_bitmap, 0);
+
+    superblock_change_free_blocks(TOTAL_BLOCKS - DATA_BLOCK_START);
+    superblock_change_free_inodes(TOTAL_INODES - 1U);
 
     return 1;
 }
@@ -54,44 +56,62 @@ int bitmap_init(void)
 int bitmap_set_block(uint32_t block_num)
 {
     if (block_num >= TOTAL_BLOCKS) return 0;
+    if (bitmap_test(block_bitmap, block_num)) return 1;
 
     bitmap_set(block_bitmap, block_num);
+
+    superblock_change_free_blocks(superblock_get_free_blocks() - 1U);
+
     return 1;
 }
 
 int bitmap_clear_block(uint32_t block_num)
 {
     if (block_num >= TOTAL_BLOCKS) return 0;
+    if (!bitmap_test(block_bitmap, block_num)) return 1;
 
     bitmap_clear(block_bitmap, block_num);
+
+    superblock_change_free_blocks(superblock_get_free_blocks() + 1U);
+
     return 1;
 }
 
 int bitmap_test_block(uint32_t block_num)
 {
     if (block_num >= TOTAL_BLOCKS) return 0;
+
     return bitmap_test(block_bitmap, block_num);
 }
 
 int bitmap_set_inode(uint32_t inode_num)
 {
     if (inode_num >= TOTAL_INODES) return 0;
+    if (bitmap_test(inode_bitmap, inode_num)) return 1;
 
     bitmap_set(inode_bitmap, inode_num);
+
+    superblock_change_free_inodes(superblock_get_free_inodes() - 1U);
+
     return 1;
 }
 
 int bitmap_clear_inode(uint32_t inode_num)
 {
     if (inode_num >= TOTAL_INODES) return 0;
+    if (!bitmap_test(inode_bitmap, inode_num)) return 1;
 
     bitmap_clear(inode_bitmap, inode_num);
+
+    superblock_change_free_inodes(superblock_get_free_inodes() + 1U);
+
     return 1;
 }
 
 int bitmap_test_inode(uint32_t inode_num)
 {
     if (inode_num >= TOTAL_INODES) return 0;
+
     return bitmap_test(inode_bitmap, inode_num);
 }
 
@@ -126,13 +146,17 @@ int bitmap_find_free_inode(uint32_t *inode_num)
 int bitmap_write(void)
 {
     for (uint32_t i = 0; i < BLOCK_BITMAP_BLOCKS; i++) {
-        if (!disk_write_block(BLOCK_BITMAP_START + i, block_bitmap + (i * BLOCK_SIZE))) {
+        if (!disk_write_block(
+                BLOCK_BITMAP_START + i,
+                block_bitmap + (i * BLOCK_SIZE))) {
             return 0;
         }
     }
 
     for (uint32_t i = 0; i < INODE_BITMAP_BLOCKS; i++) {
-        if (!disk_write_block(INODE_BITMAP_START + i, inode_bitmap + (i * BLOCK_SIZE))) {
+        if (!disk_write_block(
+                INODE_BITMAP_START + i,
+                inode_bitmap + (i * BLOCK_SIZE))) {
             return 0;
         }
     }
@@ -143,13 +167,17 @@ int bitmap_write(void)
 int bitmap_read(void)
 {
     for (uint32_t i = 0; i < BLOCK_BITMAP_BLOCKS; i++) {
-        if (!disk_read_block(BLOCK_BITMAP_START + i, block_bitmap + (i * BLOCK_SIZE))) {
+        if (!disk_read_block(
+                BLOCK_BITMAP_START + i,
+                block_bitmap + (i * BLOCK_SIZE))) {
             return 0;
         }
     }
 
     for (uint32_t i = 0; i < INODE_BITMAP_BLOCKS; i++) {
-        if (!disk_read_block(INODE_BITMAP_START + i, inode_bitmap + (i * BLOCK_SIZE))) {
+        if (!disk_read_block(
+                INODE_BITMAP_START + i,
+                inode_bitmap + (i * BLOCK_SIZE))) {
             return 0;
         }
     }
