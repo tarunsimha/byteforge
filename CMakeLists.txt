@@ -14,6 +14,7 @@ add_executable(vfs
     src/disk.c
     src/superblock.c
     src/bitmap.c
+    src/inode.c
 )
 
 target_include_directories(vfs PRIVATE

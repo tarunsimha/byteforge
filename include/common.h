@@ -9,7 +9,7 @@
 #define TOTAL_BLOCKS    262144U
 
 // Inode configuration
-#define INODE_SIZE      1024U
+#define INODE_SIZE      2048U
 #define TOTAL_INODES    65536U
 
 // Filesystem layout
@@ -19,7 +19,8 @@
 #define INODE_BITMAP_START      (BLOCK_BITMAP_START + BLOCK_BITMAP_BLOCKS)
 #define INODE_BITMAP_BLOCKS     2U
 #define INODE_TABLE_START       (INODE_BITMAP_START + INODE_BITMAP_BLOCKS)
-#define INODE_TABLE_BLOCKS      16384U
+#define INODES_PER_BLOCK        (BLOCK_SIZE / INODE_SIZE)
+#define INODE_TABLE_BLOCKS      (TOTAL_INODES / INODES_PER_BLOCK)
 #define DATA_BLOCK_START        (INODE_TABLE_START + INODE_TABLE_BLOCKS)
 
 // Other filesystem limits

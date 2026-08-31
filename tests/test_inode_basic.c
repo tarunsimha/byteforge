@@ -58,7 +58,7 @@ int main(void)
     inode.blocks[0] = DATA_BLOCK_START;
     inode.blocks[1] = DATA_BLOCK_START + 1U;
 
-    if (!inode_write(&inode, 1U)) {
+    if (!inode_write(1U, &inode)) {
         printf("Inode write failed\n");
         disk_close();
         return 1;
@@ -66,7 +66,7 @@ int main(void)
 
     printf("Inode write successful\n");
 
-    if (!inode_read(&read_inode, 1U)) {
+    if (!inode_read(1U, &read_inode)) {
         printf("Inode read failed\n");
         disk_close();
         return 1;
@@ -80,7 +80,7 @@ int main(void)
 
     printf("Inode read/write test successful\n");
 
-    if (!inode_read(&root_inode, 0U)) {
+    if (!inode_read(0U, &root_inode)) {
         printf("Root inode read failed\n");
         disk_close();
         return 1;
@@ -111,7 +111,7 @@ int main(void)
 
     printf("Disk reopened successfully\n");
 
-    if (!inode_read(&read_inode, 1U)) {
+    if (!inode_read(1U, &read_inode)) {
         printf("Inode could not be read after reopening\n");
         disk_close();
         return 1;
