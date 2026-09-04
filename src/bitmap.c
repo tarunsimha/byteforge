@@ -115,7 +115,7 @@ int bitmap_test_inode(uint32_t inode_num)
     return bitmap_test(inode_bitmap, inode_num);
 }
 
-int bitmap_find_free_block(uint32_t *block_num)
+int bitmap_find_free_block(uint32_t* block_num)
 {
     if (block_num == NULL) return 0;
 
@@ -129,7 +129,7 @@ int bitmap_find_free_block(uint32_t *block_num)
     return 0;
 }
 
-int bitmap_find_free_inode(uint32_t *inode_num)
+int bitmap_find_free_inode(uint32_t* inode_num)
 {
     if (inode_num == NULL) return 0;
 
@@ -146,19 +146,11 @@ int bitmap_find_free_inode(uint32_t *inode_num)
 int bitmap_write(void)
 {
     for (uint32_t i = 0; i < BLOCK_BITMAP_BLOCKS; i++) {
-        if (!disk_write_block(
-                BLOCK_BITMAP_START + i,
-                block_bitmap + (i * BLOCK_SIZE))) {
-            return 0;
-        }
+        if (!disk_write_block(BLOCK_BITMAP_START + i, block_bitmap + (i * BLOCK_SIZE))) return 0;
     }
 
     for (uint32_t i = 0; i < INODE_BITMAP_BLOCKS; i++) {
-        if (!disk_write_block(
-                INODE_BITMAP_START + i,
-                inode_bitmap + (i * BLOCK_SIZE))) {
-            return 0;
-        }
+        if (!disk_write_block(INODE_BITMAP_START + i, inode_bitmap + (i * BLOCK_SIZE))) return 0;
     }
 
     return 1;
@@ -167,19 +159,11 @@ int bitmap_write(void)
 int bitmap_read(void)
 {
     for (uint32_t i = 0; i < BLOCK_BITMAP_BLOCKS; i++) {
-        if (!disk_read_block(
-                BLOCK_BITMAP_START + i,
-                block_bitmap + (i * BLOCK_SIZE))) {
-            return 0;
-        }
+        if (!disk_read_block(BLOCK_BITMAP_START + i, block_bitmap + (i * BLOCK_SIZE))) return 0;
     }
 
     for (uint32_t i = 0; i < INODE_BITMAP_BLOCKS; i++) {
-        if (!disk_read_block(
-                INODE_BITMAP_START + i,
-                inode_bitmap + (i * BLOCK_SIZE))) {
-            return 0;
-        }
+        if (!disk_read_block(INODE_BITMAP_START + i, inode_bitmap + (i * BLOCK_SIZE))) return 0;
     }
 
     return 1;
