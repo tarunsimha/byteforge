@@ -19,4 +19,7 @@ int bitmap_find_free_inode(uint32_t* inode_num);
 int bitmap_write(void);
 int bitmap_read(void);
 
+int bitmap_allocate_block(uint32_t* block_num);
+int bitmap_release_block(uint32_t block_num);
+
 #endif

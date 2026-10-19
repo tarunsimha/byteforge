@@ -168,3 +168,42 @@ int bitmap_read(void)
 
     return 1;
 }
+
+
+int bitmap_allocate_block(uint32_t* block_num)
+{
+    if (block_num == NULL) return 0;
+
+    uint32_t new_block;
+
+    if (!bitmap_find_free_block(&new_block)) return 0;
+    if (!bitmap_set_block(new_block)) return 0;
+
+    if (!bitmap_write()) {
+        bitmap_clear_block(new_block);
+        bitmap_write();
+        return 0;
+    }
+
+    *block_num = new_block;
+    return 1;
+}
+
+int bitmap_release_block(uint32_t block_num)
+{
+    if (block_num < DATA_BLOCK_START ||
+        block_num >= TOTAL_BLOCKS) {
+        return 0;
+    }
+
+    if (!bitmap_test_block(block_num)) return 0;
+    if (!bitmap_clear_block(block_num)) return 0;
+
+    if (!bitmap_write()) {
+        bitmap_set_block(block_num);
+        bitmap_write();
+        return 0;
+    }
+
+    return 1;
+}

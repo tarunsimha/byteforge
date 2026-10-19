@@ -55,9 +55,9 @@ int directory_add_entry(uint32_t parent_inode_num, uint32_t inode_num, const cha
 
         for (uint32_t j = 0; j < BLOCK_SIZE / sizeof(directory_entry_t); j++) {
 
-            if (entries[j].inode_num != 0U && strcmp(entries[j].name, name) == 0) return 0;
+            if (entries[j].name[0] != '\0' && strcmp(entries[j].name, name) == 0) return 0;
 
-            if (entries[j].inode_num == 0U) {
+            if (entries[j].name[0] == '\0') {
                 entries[j].inode_num = inode_num;
                 strcpy(entries[j].name, name);
 
@@ -71,13 +71,11 @@ int directory_add_entry(uint32_t parent_inode_num, uint32_t inode_num, const cha
 
     uint32_t new_block;
 
-    if (!bitmap_find_free_block(&new_block)) return 0;
-
-    if (!bitmap_set_block(new_block)) return 0;
+    if (!bitmap_allocate_block(&new_block)) return 0;
 
     for (uint32_t i = 0; i < BLOCK_SIZE / sizeof(directory_entry_t); i++) {
         if (!directory_entry_init(&entries[i])) {
-            bitmap_clear_block(new_block);
+            bitmap_release_block(new_block);
             return 0;
         }
     }
@@ -86,7 +84,7 @@ int directory_add_entry(uint32_t parent_inode_num, uint32_t inode_num, const cha
     strcpy(entries[0].name, name);
 
     if (!directory_write(entries, new_block)) {
-        bitmap_clear_block(new_block);
+        bitmap_release_block(new_block);
         return 0;
     }
 
@@ -94,7 +92,7 @@ int directory_add_entry(uint32_t parent_inode_num, uint32_t inode_num, const cha
     parent_inode.block_count++;
 
     if (!inode_write(&parent_inode, parent_inode_num)) {
-        bitmap_clear_block(new_block);
+        bitmap_release_block(new_block);
         return 0;
     }
 
@@ -119,12 +117,7 @@ int directory_create(uint32_t parent_inode_num, uint32_t* inode_num, const char*
 
     if (!inode_allocate(&new_inode_num)) return 0;
 
-    if (!bitmap_find_free_block(&block_num)) {
-        inode_free(new_inode_num);
-        return 0;
-    }
-
-    if (!bitmap_set_block(block_num)) {
+    if (!bitmap_allocate_block(&block_num)) {
         inode_free(new_inode_num);
         return 0;
     }
@@ -132,7 +125,7 @@ int directory_create(uint32_t parent_inode_num, uint32_t* inode_num, const char*
     inode_t inode;
 
     if (!inode_init(&inode)) {
-        bitmap_clear_block(block_num);
+        bitmap_release_block(block_num);
         inode_free(new_inode_num);
         return 0;
     }
@@ -146,7 +139,7 @@ int directory_create(uint32_t parent_inode_num, uint32_t* inode_num, const char*
 
     for (uint32_t i = 0; i < BLOCK_SIZE / sizeof(directory_entry_t); i++) {
         if (!directory_entry_init(&entries[i])) {
-            bitmap_clear_block(block_num);
+            bitmap_release_block(block_num);
             inode_free(new_inode_num);
             return 0;
         }
@@ -159,19 +152,19 @@ int directory_create(uint32_t parent_inode_num, uint32_t* inode_num, const char*
     strcpy(entries[1].name, "..");
 
     if (!directory_write(entries, block_num)) {
-        bitmap_clear_block(block_num);
+        bitmap_release_block(block_num);
         inode_free(new_inode_num);
         return 0;
     }
 
     if (!inode_write(&inode, new_inode_num)) {
-        bitmap_clear_block(block_num);
+        bitmap_release_block(block_num);
         inode_free(new_inode_num);
         return 0;
     }
 
     if (!directory_add_entry(parent_inode_num, new_inode_num, name)) {
-        bitmap_clear_block(block_num);
+        bitmap_release_block(block_num);
         inode_free(new_inode_num);
         return 0;
     }
@@ -179,4 +172,37 @@ int directory_create(uint32_t parent_inode_num, uint32_t* inode_num, const char*
     *inode_num = new_inode_num;
 
     return 1;
+}
+
+int directory_lookup(uint32_t parent_inode_num, const char* name, uint32_t* inode_num)
+{
+    if (name == NULL || inode_num == NULL) return 0;
+    if (name[0] == '\0') return 0;
+    if (strlen(name) > MAX_FILENAME) return 0;
+    if (parent_inode_num >= TOTAL_INODES) return 0;
+
+    inode_t parent_inode;
+
+    if (!inode_read(&parent_inode, parent_inode_num)) return 0;
+    if (!inode_is_directory(&parent_inode)) return 0;
+    if (parent_inode.block_count > DIRECT_BLOCKS) return 0;
+
+    directory_entry_t entries[BLOCK_SIZE / sizeof(directory_entry_t)];
+
+    for (uint32_t i = 0; i < parent_inode.block_count; i++) {
+        uint32_t block_num = parent_inode.blocks[i];
+
+        if (!directory_read(entries, block_num)) return 0;
+
+        for (uint32_t j = 0; j < BLOCK_SIZE / sizeof(directory_entry_t); j++) {
+            if (entries[j].name[0] != '\0' &&
+                strcmp(entries[j].name, name) == 0) {
+
+                *inode_num = entries[j].inode_num;
+                return 1;
+            }
+        }
+    }
+
+    return 0;
 }

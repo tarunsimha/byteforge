@@ -19,4 +19,6 @@ int directory_write(const directory_entry_t* entries, uint32_t block_num);
 int directory_add_entry(uint32_t parent_inode_num, uint32_t inode_num, const char* name);
 int directory_create(uint32_t parent_inode_num, uint32_t* inode_num, const char* name);
 
+int directory_lookup(uint32_t parent_inode_num, const char* name, uint32_t* inode_num);
+
 #endif
